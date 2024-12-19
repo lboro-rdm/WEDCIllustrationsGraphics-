@@ -8,23 +8,32 @@ server <- function(input, output, session) {
       
       if (!is.null(combined_df) && nrow(combined_df) > 0) {
         if (!is.null(input$selected_collection) && input$selected_collection != "") {
-          combined_df <- combined_df[combined_df$collection_name == input$selected_collection, ]
+          if (input$selected_collection == "All") {
+            # If "All" is selected, no filtering is applied
+            filtered_df <- combined_df
+          } else {
+            # Filter by the selected collection
+            filtered_df <- combined_df[combined_df$collection_name == input$selected_collection, ]
+          }
+        } else {
+          filtered_df <- combined_df
         }
         
-        # Sort by year and then by title
-        combined_df <- combined_df %>%
+        # Sort by year and title, then remove duplicates
+        filtered_df <- filtered_df %>%
           arrange(year, title) %>%  # Sort alphabetically by year and title
-          mutate(formatted_text = paste("WEDC, Loughborough University. (", year, "). ", 
-                                        title, ". Loughborough University. Figure. ", 
-                                        "<a href='", doi, "' target='_blank'>", doi, "</a>.", sep = "")) %>%
+          distinct(year, title, .keep_all = TRUE) %>%  # Remove duplicates based on year and title
+          mutate(formatted_text = paste("<span style='color: #002c3d;'>WEDC, Loughborough University. (", year, "). ", 
+                                        "<a href='", doi, "' target='_blank' style='text-decoration: underline; color: #002c3d;'>", title, "</a>. Loughborough University. Figure.</span>", 
+                                        sep = "")) %>%
           select(formatted_text) # Select only the formatted text column
       } else {
-        combined_df <- data.frame(formatted_text = "No data available")
+        filtered_df <- data.frame(formatted_text = "No data available")
       }
     } else {
-      combined_df <- data.frame(formatted_text = "CSV file not found")
+      filtered_df <- data.frame(formatted_text = "CSV file not found")
     }
-    combined_df
+    filtered_df
   })
   
   # Render the dropdown menu for collection names
@@ -35,11 +44,13 @@ server <- function(input, output, session) {
       if (!is.null(combined_df) && nrow(combined_df) > 0) {
         collection_names <- unique(combined_df$collection_name)
         collection_names <- sort(collection_names)  # Sort collection names alphabetically
+        # Add "All" option
+        collection_choices <- c("All", collection_names)
         selectInput(
           inputId = "selected_collection",
           label = "Select Collection",
-          choices = c("", collection_names),
-          selected = ""
+          choices = collection_choices,
+          selected = "All"  # Set "All" as the default selected option
         )
       }
     } else {
@@ -51,7 +62,7 @@ server <- function(input, output, session) {
   output$articleTable <- renderDataTable({
     filteredArticles()
   }, 
-  escape = FALSE,    # Allow HTML for clickable DOIs
+  escape = FALSE,    # Allow HTML for clickable titles
   rownames = FALSE,  # Remove row numbering
   options = list(
     paging = FALSE,
