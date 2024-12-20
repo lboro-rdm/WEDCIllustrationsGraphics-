@@ -2,14 +2,15 @@ library(httr)
 library(jsonlite)
 library(dplyr)
 
-# Read collection IDs from CSV
+# Get article IDs -----------------------------------------------------
+
 collection_ids <- read.csv("collection_ids.csv", stringsAsFactors = FALSE)$collection_id
 
 # Initialize a data frame to store results
 article_details <- data.frame(
   collection_name = character(),
+  article_id = character(),
   title = character(),
-  year = integer(),
   doi = character(),
   stringsAsFactors = FALSE
 )
@@ -44,8 +45,8 @@ fetch_articles_from_collection <- function(collection_id) {
   # Format articles into a data frame
   data.frame(
     collection_name = collection_name,
+    article_id = as.character(articles$id),  # Ensure article_id is a character
     title = articles$title,
-    year = as.integer(format(as.Date(articles$published_date), "%Y")),
     doi = articles$doi,
     stringsAsFactors = FALSE
   )
@@ -64,7 +65,68 @@ for (collection_id in collection_ids) {
 article_details <- article_details %>%
   mutate(doi = ifelse(!is.na(doi), paste0("https://doi.org/", doi), NA))
 
-# Write the results to a CSV file
-write.csv(article_details, "figshare_articles_with_collections.csv", row.names = FALSE)
 
-message("Article details saved to figshare_articles_with_collections.csv")
+# Get Tag details ---------------------------------------------------------
+
+# Function to fetch article details using article ID
+fetch_article_details <- function(article_id) {
+  # Figshare API endpoint for article details
+  article_details_url <- paste0(base_url, "/articles/", article_id)
+  article_details_response <- GET(article_details_url)
+  
+  # Check if the request was successful
+  if (status_code(article_details_response) != 200) {
+    message("Failed to fetch details for article ID: ", article_id)
+    return(data.frame(
+      article_id = as.character(article_id),
+      tags = NA,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Parse the response
+  article_details <- fromJSON(content(article_details_response, as = "text"))
+  
+  # Extract tags
+  tags <- if (!is.null(article_details$tags)) {
+    if ("Line drawings" %in% article_details$tags) {
+      "Line drawings"
+    } else {
+      "Technical illustration"
+    }
+  } else {
+    "Technical illustration"
+  }
+  
+  # Return a data frame with the article ID and tags
+  data.frame(
+    article_id = as.character(article_id),
+    tags = tags,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Initialize a counter
+total_articles <- nrow(article_details)
+message("Total articles to process: ", total_articles)
+
+# Fetch tags for all articles with a progress counter
+article_tags <- lapply(seq_along(article_details$article_id), function(i) {
+  message("Processing article ", i, " of ", total_articles, " (ID: ", article_details$article_id[i], ")")
+  fetch_article_details(article_details$article_id[i])
+})
+
+# Combine results into a single data frame
+tags_data <- bind_rows(article_tags)
+
+# Merge the tags data back into the original article details
+article_details <- left_join(article_details, tags_data, by = "article_id")
+
+article_details <- article_details %>%
+  distinct(collection_name, article_id, .keep_all = TRUE)
+
+
+# Write to CSV ------------------------------------------------------------
+
+# Save the updated data frame with tags to a CSV file
+write.csv(article_details, "articles_details.csv", row.names = FALSE)

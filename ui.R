@@ -7,7 +7,7 @@ library(jsonlite)
 library(dplyr)
 
 ui <- tags$html(
-  lang = "en",  # Set the language attribute here
+  lang = "en",
   fluidPage(
     titlePanel(
       HTML('<span style="color: #002c3d;"><strong>WEDC, Loughborough University:</strong></span>
@@ -30,23 +30,22 @@ ui <- tags$html(
       "))
     ),
     
-    # Add a dropdown menu for selecting a collection name
-    fluidRow(
-      style = "margin-left: 20px; margin-right: 20px; margin-bottom: 10px;",
-      column(
-        width = 12,
-        uiOutput("collectionDropdown") # Placeholder for the dropdown menu
-      )
-    ),
-    
-    # Show a table with a spinner
-    fluidRow(
-      style = "margin-left: 20px; margin-right: 20px;",
-      withSpinner(
-        dataTableOutput("articleTable"), # Table output
-        type = 3, 
-        color = "#009BC9", 
-        color.background = "#FFFFFF"
+    # Sidebar layout
+    sidebarLayout(
+      sidebarPanel(
+        style = "margin-bottom: 10px;",
+        uiOutput("collectionDropdown"),
+        uiOutput("drawingTypeDropdown"),  # New dropdown for Drawing Type
+        p(),
+        p("The development of these figures was funded by WEDC, Loughborough University")
+      ),
+      mainPanel(
+        withSpinner(
+          dataTableOutput("articleTable"), # Table output
+          type = 3, 
+          color = "#009BC9", 
+          color.background = "#FFFFFF"
+        )
       )
     )
   )
