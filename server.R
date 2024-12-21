@@ -1,8 +1,7 @@
 server <- function(input, output, session) {
   
-  # Reactive function to fetch and filter the data based on the selected collection
   filteredArticles <- reactive({
-    csv_file <- "articles_details.csv"
+    csv_file <- "articles_details_with_thumbnails.csv"
     if (file.exists(csv_file)) {
       combined_df <- read.csv(csv_file, stringsAsFactors = FALSE)
       
@@ -23,11 +22,20 @@ server <- function(input, output, session) {
           filtered_df <- filtered_df[filtered_df$tags == input$drawing_type, ]
         }
         
+        # Generate HTML for thumbnail and title
         filtered_df <- filtered_df %>%
-          arrange(title) %>%  
-          distinct(doi, .keep_all = TRUE) %>%  
-          mutate(formatted_text = paste(
-            "<a href='", doi, "' target='_blank' style='text-decoration: underline; color: #002c3d;'>", title, "</a>")) %>%
+          arrange(title) %>%
+          distinct(doi, .keep_all = TRUE) %>%
+          mutate(
+            thumbnail_path = paste0("www/thumbnails/", thumbnail_file),  # Use the thumbnail_file from CSV
+            print(thumbnail_path),
+            formatted_text = paste0(
+              "<div style='display: flex; align-items: center;'>",
+              "<img src='", thumbnail_path, "' />",
+              "<a href='", doi, "' target='_blank' style='text-decoration: underline; color: #002c3d;'>", title, "</a>",
+              "</div>"
+            )
+          ) %>%
           select(formatted_text) # Select only the formatted text column
       } else {
         filtered_df <- data.frame(formatted_text = "No data available")
@@ -63,7 +71,7 @@ server <- function(input, output, session) {
   
   # Render the dropdown menu for drawing types
   output$drawingTypeDropdown <- renderUI({
-    csv_file <- "articles_details.csv"
+    csv_file <- "articles_details_with_thumbnails.csv"
     if (file.exists(csv_file)) {
       combined_df <- read.csv(csv_file, stringsAsFactors = FALSE)
       if (!is.null(combined_df) && nrow(combined_df) > 0) {
@@ -101,3 +109,5 @@ server <- function(input, output, session) {
     )
   ))
 }
+
+

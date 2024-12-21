@@ -1,8 +1,12 @@
 library(httr)
 library(jsonlite)
 library(dplyr)
+library(magick)
+library(tools)
 
 # Get article IDs -----------------------------------------------------
+
+start_csv <- Sys.time()
 
 collection_ids <- read.csv("collection_ids.csv", stringsAsFactors = FALSE)$collection_id
 
@@ -126,7 +130,116 @@ article_details <- article_details %>%
   distinct(collection_name, article_id, .keep_all = TRUE)
 
 
+
 # Write to CSV ------------------------------------------------------------
 
-# Save the updated data frame with tags to a CSV file
 write.csv(article_details, "articles_details.csv", row.names = FALSE)
+
+end_csv <- Sys.time()
+
+total_csv_time <- end_csv - start_csv
+
+
+# Get image files ---------------------------------------------------------
+
+# Paths for log and output directories
+processed_log <- "processed_ids.csv"
+images_dir <- "images"
+thumbnails_dir <- "thumbnails"
+
+# Ensure directories exist
+dir.create(images_dir, showWarnings = FALSE)
+dir.create(thumbnails_dir, showWarnings = FALSE)
+
+# Load previously processed IDs
+if (file.exists(processed_log)) {
+  processed_ids <- read.csv(processed_log, stringsAsFactors = FALSE)$article_id
+} else {
+  processed_ids <- character(0)
+}
+
+# Filter out processed IDs
+unique_article_ids <- setdiff(unique(article_details$article_id), processed_ids)
+
+start_images <- Sys.time()
+
+# Loop through unprocessed article IDs
+for (i in seq_along(unique_article_ids)) {
+  article_id <- unique_article_ids[i]
+  message("Fetching file IDs for article ID: ", article_id, " (", i, " of ", length(unique_article_ids), ")")
+  
+  # Fetch file IDs for the article
+  files_url <- paste0(base_url, "/articles/", article_id, "/files")
+  files_response <- GET(files_url)
+  
+  if (status_code(files_response) != 200) {
+    message("Failed to fetch file info for article ID: ", article_id)
+    next
+  }
+  
+  files_info <- fromJSON(content(files_response, as = "text"))
+  
+  # Check if there are files available for the article
+  if (nrow(files_info) > 0) {
+    # Loop through each file and download it
+    for (j in seq_len(nrow(files_info))) {
+      file <- files_info[j, ]
+      if (!is.null(file$download_url)) {  # Ensure 'download_url' exists
+        download_url <- file$download_url
+        file_extension <- tools::file_ext(file$name)  # Get the original file extension
+        destfile <- file.path(images_dir, paste0(article_id, ".", file_extension))  # Rename using article ID
+        
+        message("Downloading file for article ID: ", article_id, " (File Name: ", file$name, ")")
+        
+        # Download the file
+        download.file(download_url, destfile, mode = "wb")
+        message("Downloaded file for article ID: ", article_id, " (Renamed to: ", destfile, ")")
+        
+        # Resize the image to thumbnail using magick
+        thumbnail_file <- file.path(thumbnails_dir, paste0(article_id, "_thumbnail.", file_extension))
+        image <- image_read(destfile)  # Read the downloaded image
+        image_resized <- image_scale(image, "150x150!")  # Resize to 150x150 pixels
+        image_write(image_resized, thumbnail_file)  # Save the thumbnail
+        message("Created thumbnail for article ID: ", article_id, " (Saved as: ", thumbnail_file, ")")
+      } else {
+        message("No download URL found for article ID: ", article_id)
+      }
+    }
+    # Log the successfully processed article ID
+    write.csv(data.frame(article_id = article_id), processed_log, row.names = FALSE, append = TRUE)
+  } else {
+    message("No files available for article ID: ", article_id)
+  }
+}
+
+
+end_images <- Sys.time()
+
+total_time_images <- end_images - start_images
+
+print(total_time_images)
+
+# 9 minutes to get the csv, 2 hours to get images - 2024-12-20, PM
+
+# Match Thumbnails to Articles ------------------------------------------------
+
+thumbnails_dir <- "www/thumbnails"
+
+# Get a list of all thumbnails in the directory
+thumbnail_files <- list.files(thumbnails_dir, full.names = TRUE)
+
+# Extract article IDs from the thumbnail filenames
+thumbnail_data <- data.frame(
+  article_id = gsub("_thumbnail\\..*$", "", basename(thumbnail_files)),  # Extract article_id from filename
+  thumbnail_file = basename(thumbnail_files),  # Store the file name
+  stringsAsFactors = FALSE
+)
+
+# Join the thumbnail data with the article details
+article_details <- article_details %>%
+  left_join(thumbnail_data, by = "article_id")
+
+# Write the updated article details with thumbnails to CSV
+write.csv(article_details, "articles_details_with_thumbnails.csv", row.names = FALSE)
+
+message("Updated articles_details.csv with thumbnail file names.")
