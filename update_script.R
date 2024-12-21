@@ -144,12 +144,7 @@ total_csv_time <- end_csv - start_csv
 
 # Paths for log and output directories
 processed_log <- "processed_ids.csv"
-images_dir <- "images"
-thumbnails_dir <- "thumbnails"
-
-# Ensure directories exist
-dir.create(images_dir, showWarnings = FALSE)
-dir.create(thumbnails_dir, showWarnings = FALSE)
+thumbnails_dir <- "www/thumbnails"  # Save thumbnails in www/thumbnails
 
 # Load previously processed IDs
 if (file.exists(processed_log)) {
@@ -187,20 +182,22 @@ for (i in seq_along(unique_article_ids)) {
       if (!is.null(file$download_url)) {  # Ensure 'download_url' exists
         download_url <- file$download_url
         file_extension <- tools::file_ext(file$name)  # Get the original file extension
-        destfile <- file.path(images_dir, paste0(article_id, ".", file_extension))  # Rename using article ID
         
         message("Downloading file for article ID: ", article_id, " (File Name: ", file$name, ")")
         
-        # Download the file
-        download.file(download_url, destfile, mode = "wb")
-        message("Downloaded file for article ID: ", article_id, " (Renamed to: ", destfile, ")")
+        # Download the file directly into memory for thumbnail creation
+        temp_file <- tempfile(fileext = paste0(".", file_extension))
+        download.file(download_url, temp_file, mode = "wb")
         
         # Resize the image to thumbnail using magick
         thumbnail_file <- file.path(thumbnails_dir, paste0(article_id, "_thumbnail.", file_extension))
-        image <- image_read(destfile)  # Read the downloaded image
+        image <- image_read(temp_file)  # Read the downloaded image from memory
         image_resized <- image_scale(image, "150x150!")  # Resize to 150x150 pixels
         image_write(image_resized, thumbnail_file)  # Save the thumbnail
         message("Created thumbnail for article ID: ", article_id, " (Saved as: ", thumbnail_file, ")")
+        
+        # Remove the temporary file to avoid saving the original image
+        unlink(temp_file)
       } else {
         message("No download URL found for article ID: ", article_id)
       }
@@ -211,6 +208,7 @@ for (i in seq_along(unique_article_ids)) {
     message("No files available for article ID: ", article_id)
   }
 }
+
 
 
 end_images <- Sys.time()
