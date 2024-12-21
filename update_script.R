@@ -218,6 +218,7 @@ total_time_images <- end_images - start_images
 print(total_time_images)
 
 # 9 minutes to get the csv, 2 hours to get images - 2024-12-20, PM
+# 8 minutes to get the csv, 44 minutes to get images - 2024-12-21 AM, Saturday
 
 # Match Thumbnails to Articles ------------------------------------------------
 
