@@ -6,7 +6,7 @@ library(tools)
 
 # Get article IDs -----------------------------------------------------
 
-start_csv <- Sys.time()
+start_csv <- Sys.time() 
 
 collection_ids <- read.csv("collection_ids.csv", stringsAsFactors = FALSE)$collection_id
 
@@ -181,19 +181,18 @@ for (i in seq_along(unique_article_ids)) {
       file <- files_info[j, ]
       if (!is.null(file$download_url)) {  # Ensure 'download_url' exists
         download_url <- file$download_url
-        file_extension <- tools::file_ext(file$name)  # Get the original file extension
         
         message("Downloading file for article ID: ", article_id, " (File Name: ", file$name, ")")
         
         # Download the file directly into memory for thumbnail creation
-        temp_file <- tempfile(fileext = paste0(".", file_extension))
+        temp_file <- tempfile(fileext = ".tmp")
         download.file(download_url, temp_file, mode = "wb")
         
         # Resize the image to thumbnail using magick
-        thumbnail_file <- file.path(thumbnails_dir, paste0(article_id, "_thumbnail.", file_extension))
+        thumbnail_file <- file.path(thumbnails_dir, paste0(article_id, "_thumbnail.jpg"))
         image <- image_read(temp_file)  # Read the downloaded image from memory
         image_resized <- image_scale(image, "150x150!")  # Resize to 150x150 pixels
-        image_write(image_resized, thumbnail_file)  # Save the thumbnail
+        image_write(image_resized, thumbnail_file, format = "jpg")  # Save the thumbnail
         message("Created thumbnail for article ID: ", article_id, " (Saved as: ", thumbnail_file, ")")
         
         # Remove the temporary file to avoid saving the original image
@@ -216,9 +215,10 @@ end_images <- Sys.time()
 total_time_images <- end_images - start_images
 
 print(total_time_images)
-
+print(total_csv_time)
 # 9 minutes to get the csv, 2 hours to get images - 2024-12-20, PM
 # 8 minutes to get the csv, 44 minutes to get images - 2024-12-21 AM, Saturday
+# 9 mins to get csv, 24 mins to get images - 2025-01-02 AM
 
 # Match Thumbnails to Articles ------------------------------------------------
 
