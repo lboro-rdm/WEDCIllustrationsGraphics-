@@ -36,12 +36,13 @@ ui <- tags$html(
         style = "margin-bottom: 10px;",
         uiOutput("collectionDropdown"),
         uiOutput("drawingTypeDropdown"),  # New dropdown for Drawing Type
+        textInput("search_title", "Search Title:", ""),  # Search box for titles
         p(),
         p("The development of these figures was funded by WEDC, Loughborough University")
       ),
       mainPanel(
         withSpinner(
-          dataTableOutput("articleTable"), # Table output
+          uiOutput("articleGrid"), # Table output
           type = 3, 
           color = "#009BC9", 
           color.background = "#FFFFFF"

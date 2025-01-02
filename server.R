@@ -22,28 +22,47 @@ server <- function(input, output, session) {
           filtered_df <- filtered_df[filtered_df$tags == input$drawing_type, ]
         }
         
-        # Generate HTML for thumbnail and title
+        # Filter by the search query
+        if (!is.null(input$search_title) && input$search_title != "") {
+          search_query <- tolower(input$search_title)
+          filtered_df <- filtered_df[grepl(search_query, tolower(filtered_df$title)), ]
+        }
+        
+        # Generate paths for thumbnails
         filtered_df <- filtered_df %>%
           arrange(title) %>%
           distinct(doi, .keep_all = TRUE) %>%
           mutate(
-            thumbnail_path = paste0("www/thumbnails/", thumbnail_file),  # Use the thumbnail_file from CSV
-            print(thumbnail_path),
-            formatted_text = paste0(
-              "<div style='display: flex; align-items: center;'>",
-              "<img src='", thumbnail_path, "' />",
+            thumbnail_path = paste0("thumbnails/", article_id, "_thumbnail.jpg"),  # Construct path to thumbnail
+            formatted_html = paste0(
+              "<div style='text-align: center;'>",
+              "<img src='", thumbnail_path, "' alt='Thumbnail for article ", article_id, "' style='max-width: 150px; max-height: 150px; margin: 5px;' />",
+              "<div style='margin-top: 5px; font-size: 14px;'>",
               "<a href='", doi, "' target='_blank' style='text-decoration: underline; color: #002c3d;'>", title, "</a>",
+              "</div>",
               "</div>"
             )
-          ) %>%
-          select(formatted_text) # Select only the formatted text column
+          )
       } else {
-        filtered_df <- data.frame(formatted_text = "No data available")
+        filtered_df <- data.frame(formatted_html = "No data available")
       }
     } else {
-      filtered_df <- data.frame(formatted_text = "CSV file not found")
+      filtered_df <- data.frame(formatted_html = "CSV file not found")
     }
     filtered_df
+  })
+  
+  # Render the filtered article details as a dynamic table/grid
+  output$articleGrid <- renderUI({
+    filtered_df <- filteredArticles()
+    if (!is.null(filtered_df) && nrow(filtered_df) > 0 && "formatted_html" %in% names(filtered_df)) {
+      div(
+        style = "display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;",
+        HTML(paste(filtered_df$formatted_html, collapse = ""))
+      )
+    } else {
+      div("No articles to display.")
+    }
   })
   
   # Render the dropdown menu for collection names
@@ -91,23 +110,4 @@ server <- function(input, output, session) {
       "CSV file not found."
     }
   })
-  
-  # Render the filtered article details as a table
-  output$articleTable <- renderDataTable({
-    filteredArticles()
-  }, 
-  escape = FALSE,
-  rownames = FALSE,
-  options = list(
-    paging = FALSE,
-    ordering = FALSE,
-    searching = TRUE,
-    headerCallback = JS(
-      "function( thead, data, start, end, display ) {",
-      "  $(thead).hide();",
-      "}"
-    )
-  ))
 }
-
-
