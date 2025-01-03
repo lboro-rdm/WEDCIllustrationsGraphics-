@@ -99,7 +99,7 @@ server <- function(input, output, session) {
         drawing_choices <- c("All", drawing_types)  # Include "All" option
         selectInput(
           inputId = "drawing_type",
-          label = "Select Drawing Type",
+          label = "Select Image Type",
           choices = drawing_choices,
           selected = "All"  # Set "All" as the default selected option
         )

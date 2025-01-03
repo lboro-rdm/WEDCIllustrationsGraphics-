@@ -96,10 +96,10 @@ fetch_article_details <- function(article_id) {
     if ("Line drawings" %in% article_details$tags) {
       "Line drawings"
     } else {
-      "Technical illustration"
+      "Technical illustration and graphics"
     }
   } else {
-    "Technical illustration"
+    "Technical illustration and graphics"
   }
   
   # Return a data frame with the article ID and tags

@@ -38,7 +38,7 @@ ui <- tags$html(
         uiOutput("drawingTypeDropdown"),  # New dropdown for Drawing Type
         textInput("search_title", "Search Title:", ""),  # Search box for titles
         p(),
-        p("The development of these figures was funded by WEDC, Loughborough University")
+        p("These figures were prepared by WEDC, School of Architecture, Building and Civil Engineering, Loughborough University.")
       ),
       mainPanel(
         withSpinner(
