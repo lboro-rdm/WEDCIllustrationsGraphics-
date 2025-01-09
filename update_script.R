@@ -65,6 +65,7 @@ for (collection_id in collection_ids) {
   }
 }
 
+
 # Create a column with DOI as clickable links
 article_details <- article_details %>%
   mutate(doi = ifelse(!is.na(doi), paste0("https://doi.org/", doi), NA))
@@ -219,6 +220,7 @@ print(total_csv_time)
 # 9 minutes to get the csv, 2 hours to get images - 2024-12-20, PM
 # 8 minutes to get the csv, 44 minutes to get images - 2024-12-21 AM, Saturday
 # 9 mins to get csv, 24 mins to get images - 2025-01-02 AM
+# 9 mins to get csv, 34 mins to get images - 2025-01-08
 
 # Match Thumbnails to Articles ------------------------------------------------
 
