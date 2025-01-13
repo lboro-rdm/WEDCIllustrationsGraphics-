@@ -36,7 +36,7 @@ ui <- tags$html(
         style = "margin-bottom: 10px;",
         uiOutput("collectionDropdown"),
         uiOutput("drawingTypeDropdown"),  # New dropdown for Drawing Type
-        textInput("search_title", "Search Title:", ""),  # Search box for titles
+        textInput("search_title", "Search Keyword:", ""),  # Search box for titles
         p(),
         p("These figures were prepared by WEDC, School of Architecture, Building and Civil Engineering, Loughborough University.")
       ),
