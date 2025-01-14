@@ -65,11 +65,12 @@ for (collection_id in collection_ids) {
   }
 }
 
-
-# Create a column with DOI as clickable links
 article_details <- article_details %>%
-  mutate(doi = ifelse(!is.na(doi), paste0("https://doi.org/", doi), NA))
-
+  mutate(doi = ifelse(
+    !is.na(doi), 
+    paste0("https://doi.org/", sub("\\.v[0-9]+$", "", doi)), 
+    NA
+  ))
 
 # Get Tag details ---------------------------------------------------------
 
